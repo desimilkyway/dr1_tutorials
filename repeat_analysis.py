@@ -1,6 +1,5 @@
 import glob
 import astropy.table as atpy
-# import crossmatcher
 import duckdb
 import sqlutilpy as sqlutil
 import scipy.stats
@@ -21,13 +20,6 @@ for f in fs:
     XF = f.replace('.fits', '').split('-')
     survey = XF[-2]
     program = XF[-1]
-    # D['G'] = T2['PHOT_G_MEAN_MAG']
-    # D['BP'] = T2['PHOT_BP_MEAN_MAG']
-    # D['RP'] = T2['PHOT_RP_MEAN_MAG']
-    # D['PARALLAX'] = T2['PARALLAX']
-    # D['PARALLAX_ERROR'] = T2['PARALLAX_ERROR']
-    # D['RUWE'] = T2['RUWE'].filled(0)
-    # D['source_id'] = T2['SOURCE_ID'].filled(-1)
     D['survey'] = [survey] * len(T)
     D['program'] = [program] * len(T)
     for k in [
@@ -132,7 +124,7 @@ for i, prog in enumerate(['dark', 'bright', 'backup']):
          ylog=True,
          yr=[.5, 30],
          xr=[-1, 1.5],
-         xtitle=r'$\log_{10}(\sqrt{(\sigma_1^2+\sigma_2^2)/2}/(1 km/s))$',
+         xtitle=r'$\log_{10}\frac{\sqrt{(\sigma_1^2+\sigma_2^2)/2}}{1 km/s}$',
          ytitle=r'$StdDev(V_1-V_2)/\sqrt{2} [km/s]$',
          noerase=True,
          title=f'{survey}/{prog}',
