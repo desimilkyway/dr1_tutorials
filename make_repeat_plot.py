@@ -6,7 +6,9 @@ import scipy.stats
 import matplotlib.pyplot as plt
 from idlplotInd import plot, oplot
 import numpy as np
+import plot_preamb as pp
 
+pp.run()
 fs = glob.glob('../rv_variability/rvtabs_iron/*exp*fits')
 tabs = []
 for f in fs:
@@ -107,33 +109,39 @@ survey = 'main'
 for i, prog in enumerate(['dark', 'bright', 'backup']):
     sel1 = (PAIRS['program'] == prog) & (PAIRS['survey'] == survey) & (
         PAIRS['rvs_warn1'] == 0) & (PAIRS['rvs_warn2'] == 0)
+    bins = 20
     SS = scipy.stats.binned_statistic(np.log10(comb_err[sel1]),
                                       delt[sel1],
                                       funcer,
                                       range=[-1, 1.5],
-                                      bins=30)
+                                      bins=bins)
     SC = scipy.stats.binned_statistic(np.log10(comb_err[sel1]),
                                       delt[sel1],
                                       'count',
                                       range=[-1, 1.5],
-                                      bins=30)
+                                      bins=bins)
 
     plt.subplot(1, 3, i + 1)
-    plot(SS.bin_edges[:-1] + .5 * np.diff(SS.bin_edges), (SS.statistic),
+    plot(10**(SS.bin_edges[:-1] + .5 * np.diff(SS.bin_edges)), (SS.statistic),
          ps=3,
          ylog=True,
+         xlog=True,
          yr=[.5, 30],
-         xr=[-1, 1.5],
-         xtitle=r'$\log_{10}\frac{\sqrt{(\sigma_1^2+\sigma_2^2)/2}}{1 km/s}$',
-         ytitle=r'$StdDev(V_1-V_2)/\sqrt{2} [km/s]$',
+         xr=[.11, 30],
+         xtitle=r'$\frac{\sqrt{\sigma_1^2+\sigma_2^2}}{2}$[km/s]',
          noerase=True,
-         title=f'{survey}/{prog}',
+         title=f'Survey, program: {survey},{prog}',
          ind=SC.statistic > 100)
-    floor = {'dark': 1.3, 'bright': .7, 'backup': 2}[prog]
-    oplot(xgrid,
+    if i == 0:
+        plt.ylabel(r'$\frac{1}{\sqrt{2}}$ StdDev($V_1-V_2$) [km/s]')
+    else:
+        plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
+    floor = {'dark': 1.2, 'bright': .7, 'backup': 2}[prog]
+    oplot(10**xgrid,
           np.sqrt(10**(2 * xgrid) + floor**2),
           label='floor %s km/s' % floor)
     plt.legend()
-plt.gcf().set_size_inches(10, 5)
+plt.gcf().set_size_inches(3.37 * 2, 3.37)
 plt.tight_layout()
-plt.savefig('repeats_main.pdf')
+plt.subplots_adjust(wspace=0, hspace=0)
+plt.savefig('plots/repeats_accuracy.pdf')
