@@ -28,12 +28,18 @@ cnt = 0
 cur_sel0 = main_sel & (RV_T['SURVEY'] == 'main') & (
     RV_T['PROGRAM'] == 'bright') & (RV_T['SN_R'] > 10)
 
+
+def betw(x, x1, x2):
+    return (x >= x1) & (x < x2)
+
+
 for cnt in range(2):
     T = [RV_T, SP_T][cnt]
     if cnt == 0:
         cur_sel = cur_sel0
     else:
         cur_sel = cur_sel0 & (SP_T['BESTGRID'] != 's_rdesi1')
+    cur_sel = cur_sel & betw(T['TEFF'], 4500, 7000)
     plt.subplot(1, 2, cnt + 1)
     plt.hist2d((T['FEH'][cur_sel]),
                T['ALPHAFE'][cur_sel],
@@ -46,7 +52,7 @@ for cnt in range(2):
 
     plt.title(['RVS', 'SP'][cnt])
     if cnt == 0:
-        plt.ylabel(r'$\alpha$/Fe')
+        plt.ylabel(r'[$\alpha$/Fe]')
     else:
         plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
 plt.tight_layout()

@@ -34,7 +34,7 @@ for survey, program in [('sv3', 'bright'), ('main', 'bright'),
         plt.xlabel(r'$\alpha$ [deg]')
     cnt += 1
     #plt.title(f'survey, program: {survey},{program}')
-    plt.text(300, 83, f'survey, program: {survey},{program}', color='white')
+    plt.text(300, 85, f'survey, program: {survey},{program}', color='white')
     plt.xlim(360, 0)
     plt.ylabel(r'$\delta$ [deg]')
     plt.colorbar()

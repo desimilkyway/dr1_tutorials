@@ -106,20 +106,32 @@ def funcer(x):
 
 plt.clf()
 survey = 'main'
+bins = 20
 for i, prog in enumerate(['dark', 'bright', 'backup']):
     sel1 = (PAIRS['program'] == prog) & (PAIRS['survey'] == survey) & (
         PAIRS['rvs_warn1'] == 0) & (PAIRS['rvs_warn2'] == 0)
-    bins = 20
+    erange = [-1, 1.5]
+    sel2 = sel1 & (np.abs(PAIRS['mjd1'] - PAIRS['mjd2']) > 1)
     SS = scipy.stats.binned_statistic(np.log10(comb_err[sel1]),
                                       delt[sel1],
                                       funcer,
-                                      range=[-1, 1.5],
+                                      range=erange,
                                       bins=bins)
     SC = scipy.stats.binned_statistic(np.log10(comb_err[sel1]),
                                       delt[sel1],
                                       'count',
-                                      range=[-1, 1.5],
+                                      range=erange,
                                       bins=bins)
+    SS2 = scipy.stats.binned_statistic(np.log10(comb_err[sel2]),
+                                       delt[sel2],
+                                       funcer,
+                                       range=erange,
+                                       bins=bins)
+    SC2 = scipy.stats.binned_statistic(np.log10(comb_err[sel2]),
+                                       delt[sel2],
+                                       'count',
+                                       range=erange,
+                                       bins=bins)
 
     plt.subplot(1, 3, i + 1)
     plot(10**(SS.bin_edges[:-1] + .5 * np.diff(SS.bin_edges)), (SS.statistic),
@@ -128,10 +140,15 @@ for i, prog in enumerate(['dark', 'bright', 'backup']):
          xlog=True,
          yr=[.5, 30],
          xr=[.11, 30],
-         xtitle=r'$\frac{\sqrt{\sigma_1^2+\sigma_2^2}}{2}$[km/s]',
+         xtitle=r'$\sqrt{\frac{\sigma_1^2+\sigma_2^2}{2}}$ [km/s]',
          noerase=True,
          title=f'Survey, program: {survey},{prog}',
          ind=SC.statistic > 100)
+    oplot(10**(SS2.bin_edges[:-1] + .5 * np.diff(SS2.bin_edges)),
+          (SS2.statistic),
+          ps=3,
+          color='grey',
+          ind=SC2.statistic > 100)
     if i == 0:
         plt.ylabel(r'$\frac{1}{\sqrt{2}}$ StdDev($V_1-V_2$) [km/s]')
     else:
@@ -141,7 +158,7 @@ for i, prog in enumerate(['dark', 'bright', 'backup']):
           np.sqrt(10**(2 * xgrid) + floor**2),
           label='floor %s km/s' % floor)
     plt.legend()
-plt.gcf().set_size_inches(3.37 * 2, 3.37)
+plt.gcf().set_size_inches(3.37 * 2, 3.37 * .7)
 plt.tight_layout()
 plt.subplots_adjust(wspace=0, hspace=0)
 plt.savefig('plots/repeats_accuracy.pdf')
