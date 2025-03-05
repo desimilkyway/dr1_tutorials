@@ -6,16 +6,16 @@ import plot_preamb as pp
 
 pp.run()
 
-RV_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+RV_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'RVTAB',
                          mask_invalid=False)
-SP_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+SP_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'SPTAB',
                          mask_invalid=False)
-FM_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+FM_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'FIBERMAP',
                          mask_invalid=False)
-G_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+G_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                         'GAIA',
                         mask_invalid=False)
 
@@ -25,8 +25,15 @@ plt.clf()
 fig = plt.figure(figsize=(3.37 * 1, 3.37 * .75))
 cnt = 0
 cnt = 0
-cur_sel0 = main_sel & (RV_T['SURVEY'] == 'main') & (
-    RV_T['PROGRAM'] == 'bright') & (RV_T['SN_R'] > 5)
+cur_sel0 = (
+    main_sel & (RV_T['SURVEY'] == 'main') &
+    #            (RV_T['PROGRAM'] == 'bright') &
+    (RV_T['SN_R'] > 10))
+
+
+def betw(x, x1, x2):
+    return (x >= x1) & (x < x2)
+
 
 for cnt in range(2):
     T = [RV_T, SP_T][cnt]
@@ -34,25 +41,23 @@ for cnt in range(2):
         cur_sel = cur_sel0
     else:
         cur_sel = cur_sel0 & (SP_T['BESTGRID'] != 's_rdesi1')
-
+    cur_sel = cur_sel & betw(T['TEFF'], 4500, 7000)
     plt.subplot(1, 2, cnt + 1)
-    plt.hist2d(np.log10(T['TEFF'][cur_sel]),
-               T['LOGG'][cur_sel],
-               range=[[3.5, 4.2], [-0.5, 6]],
+    plt.hist2d((T['FEH'][cur_sel]),
+               T['ALPHAFE'][cur_sel],
+               range=[[-5, 1], [-1, 1.3]],
                bins=[100, 100],
-               norm=maco.LogNorm())
+               norm=maco.PowerNorm(gamma=.5))
 
-    plt.gca().set_rasterized(True)
-    plt.xlim(4., 3.5)
-    plt.ylim(6, -0.5)
-    plt.xlabel('$\log_{10} T_{eff}$ ')
+    plt.gci().set_rasterized(True)
+    plt.xlabel('[Fe/H] ')
 
     plt.title(['RVS', 'SP'][cnt])
     if cnt == 0:
-        plt.ylabel('$\log g$')
+        plt.ylabel(r'[$\alpha$/Fe]')
     else:
         plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
 plt.tight_layout()
-plt.subplots_adjust(wspace=0.03, hspace=0.01)
+plt.subplots_adjust(wspace=0., hspace=0.01)
 
-plt.savefig('plots/logg_teff.pdf')
+plt.savefig('plots/feh_alpha.pdf')

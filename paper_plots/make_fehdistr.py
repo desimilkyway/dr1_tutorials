@@ -6,16 +6,16 @@ import plot_preamb as pp
 
 pp.run()
 
-RV_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+RV_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'RVTAB',
                          mask_invalid=False)
-SP_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+SP_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'SPTAB',
                          mask_invalid=False)
-FM_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+FM_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'FIBERMAP',
                          mask_invalid=False)
-G_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+G_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                         'GAIA',
                         mask_invalid=False)
 
@@ -25,9 +25,6 @@ plt.clf()
 fig = plt.figure(figsize=(3.37 * 1, 3.37 * .75))
 cnt = 0
 cnt = 0
-cur_sel0 = main_sel & (RV_T['SURVEY'] == 'main') & (
-    RV_T['PROGRAM'] == 'bright') & (RV_T['SN_R'] > 10)
-
 cur_sel0 = main_sel & (RV_T['SURVEY'] == 'main') & (
     RV_T['PROGRAM'] == 'bright') & (RV_T['SN_R'] > 10)
 

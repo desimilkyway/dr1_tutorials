@@ -7,13 +7,13 @@ import plot_preamb as pp
 
 pp.run()
 
-RV_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+RV_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'RVTAB',
                          mask_invalid=False)
-FM_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+FM_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'FIBERMAP',
                          mask_invalid=False)
-G_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+G_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                         'GAIA',
                         mask_invalid=False)
 
@@ -51,7 +51,7 @@ for curt, bit in bitmasks:
                bins=[100, 100],
                range=[[-0.49, 2.1], [15.51, 20.5]],
                norm=colors.PowerNorm(gamma=0.5, vmax=vmax[curt]))
-    plt.gca().set_rasterized(True)
+    plt.gci().set_rasterized(True)
     if cnt % 3 == 0:
         plt.ylabel('r [mag]')
     else:

@@ -6,13 +6,13 @@ import plot_preamb as pp
 
 pp.run()
 
-RV_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+RV_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'RVTAB',
                          mask_invalid=False)
-FM_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+FM_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'FIBERMAP',
                          mask_invalid=False)
-G_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+G_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                         'GAIA',
                         mask_invalid=False)
 
@@ -36,7 +36,7 @@ for survey, program in [('sv3', 'bright'), ('main', 'bright'),
                bins=[100, 100],
                range=[[-0.49, 1.999], [15.5, 21.5]],
                norm=maco.PowerNorm(gamma=.5))
-    plt.gca().set_rasterized(True)
+    plt.gci().set_rasterized(True)
     cnt += 1
     #plt.title(f'{survey},{program}')
 
@@ -69,6 +69,6 @@ plt.text(1, 11.4, 'main,backup', color='white')
 plt.xlabel('BP-RP [mag]')
 plt.ylabel('G [mag]')
 # plt.tight_layout()
-plt.subplots_adjust(left=0.05, right=0.99, bottom=.12, top=.98)
+plt.subplots_adjust(left=0.05, right=0.99, bottom=.15, top=.98)
 
 plt.savefig('plots/cmd.pdf')

@@ -1,7 +1,7 @@
 import astropy.table as atpy
 import numpy as np
 
-RV_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+RV_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'RVTAB',
                          mask_invalid=False)
 # Colour-magnitude distribution by survey/program

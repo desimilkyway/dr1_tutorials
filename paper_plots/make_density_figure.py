@@ -6,14 +6,14 @@ import plot_preamb as pp
 
 pp.run()
 
-RV_T = atpy.Table().read('data/mwsall-pix-iron.fits',
+RV_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                          'RVTAB',
                          mask_invalid=False)
 
 main_sel = (RV_T['RVS_WARN'] == 0) & (RV_T['RR_SPECTYPE'] == 'STAR')
 
 plt.clf()
-fig = plt.figure(figsize=(3.37 * 2, 3.37 * .7))
+fig = plt.figure(figsize=(3.37 * 2, 3.37 * .65))
 cnt = 0
 for survey, program in [('main', 'bright'), ('main', 'dark'),
                         ('main', 'backup')]:
@@ -26,7 +26,7 @@ for survey, program in [('main', 'bright'), ('main', 'dark'),
                range=[[0, 360], [-30, 90]],
                weights=1. / np.cos(np.deg2rad(RV_T['TARGET_DEC'][cur_sel])),
                vmax=700)
-    plt.gca().set_rasterized(True)
+    plt.gci().set_rasterized(True)
     if cnt > 0:
         plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
     else:
@@ -40,6 +40,6 @@ for survey, program in [('main', 'bright'), ('main', 'dark'),
     if cnt == 3:
         plt.colorbar()
 plt.tight_layout()
-plt.subplots_adjust(wspace=0.02, hspace=0.01)
+plt.subplots_adjust(wspace=0.02, hspace=0.01, top=.98)
 
 plt.savefig('plots/density.pdf')

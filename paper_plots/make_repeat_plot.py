@@ -9,7 +9,7 @@ import numpy as np
 import plot_preamb as pp
 
 pp.run()
-fs = glob.glob('../rv_variability/rvtabs_iron/*exp*fits')
+fs = glob.glob('../../rv_variability/rvtabs_iron/*exp*fits')
 tabs = []
 for f in fs:
     T = atpy.Table().read(f, 'RVTAB', mask_invalid=False)
@@ -35,7 +35,7 @@ for f in fs:
 tabs = atpy.vstack(tabs)
 tab_p = tabs.to_pandas()
 conn1 = duckdb.connect(':memory:')
-fname = 'data/mwsall-pix-iron.fits'
+fname = '../data/mwsall-pix-iron.fits'
 
 Tstack = atpy.Table().read(fname, mask_invalid=False)
 Tstack2 = atpy.Table().read(fname, 'FIBERMAP', mask_invalid=False)

@@ -9,7 +9,7 @@ import numpy as np
 import plot_preamb as pp
 
 pp.run()
-fs = glob.glob('../rv_variability/rvtabs_iron/*exp*fits')
+fs = glob.glob('../../rv_variability/rvtabs_iron/*exp*fits')
 tabs = []
 for f in fs:
     T = atpy.Table().read(f, 'RVTAB', mask_invalid=False)
