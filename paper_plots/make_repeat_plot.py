@@ -107,9 +107,13 @@ def funcer(x):
 plt.clf()
 survey = 'main'
 bins = 20
+floor_dict = {'dark': 1.2, 'bright': .7, 'backup': 2}
+fig = plt.figure(figsize=(3.37 * 2, 3.37 * .7))
+
 for i, prog in enumerate(['dark', 'bright', 'backup']):
     sel1 = (PAIRS['program'] == prog) & (PAIRS['survey'] == survey) & (
         PAIRS['rvs_warn1'] == 0) & (PAIRS['rvs_warn2'] == 0)
+    floor = floor_dict[prog]
     erange = [-1, 1.5]
     sel2 = sel1 & (np.abs(PAIRS['mjd1'] - PAIRS['mjd2']) > 1)
     SS = scipy.stats.binned_statistic(np.log10(comb_err[sel1]),
@@ -153,12 +157,43 @@ for i, prog in enumerate(['dark', 'bright', 'backup']):
         plt.ylabel(r'$\frac{1}{\sqrt{2}}$ StdDev($V_1-V_2$) [km/s]')
     else:
         plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
-    floor = {'dark': 1.2, 'bright': .7, 'backup': 2}[prog]
     oplot(10**xgrid,
           np.sqrt(10**(2 * xgrid) + floor**2),
           label='floor %s km/s' % floor)
     plt.legend()
-plt.gcf().set_size_inches(3.37 * 2, 3.37 * .7)
 plt.tight_layout()
 plt.subplots_adjust(wspace=0, hspace=0)
 plt.savefig('plots/repeats_accuracy.pdf')
+
+plt.clf()
+fig = plt.figure(figsize=(3.37 * 1, 3.37 * .8))
+for i, prog in enumerate(['dark', 'bright', 'backup']):
+    sel1 = (PAIRS['program'] == prog) & (PAIRS['survey'] == survey) & (
+        PAIRS['rvs_warn1'] == 0) & (PAIRS['rvs_warn2'] == 0)
+    plt.subplot(3, 1, i + 1)
+    floor = floor_dict[prog]
+    xdelt = delt / (comb_err**2 + floor**2)**.5
+    xr = [-6, 6]
+    nbins = 100
+    plt.hist(xdelt[sel1], range=xr, bins=nbins, histtype='step', color='black')
+
+    xgrid = np.linspace(-6, 6, 1000)
+    plt.plot(xgrid,
+             scipy.stats.norm(0, 1).pdf(xgrid) * sel1.sum() * (xr[1] - xr[0]) /
+             nbins,
+             color='red')
+    plt.text(.6,
+             .7,
+             f'Survey, program:\n {survey},{prog}',
+             transform=plt.gca().transAxes)
+
+    #if i == 0:
+    plt.ylabel(r'N/bin')
+    if i < 2:
+        plt.gca().xaxis.set_major_formatter(plt.NullFormatter())
+    if i == 2:
+        plt.xlabel('$\delta_{RV}/\sigma_{RV,calib}$')
+    # plt.legend()
+plt.tight_layout()
+plt.subplots_adjust(wspace=0, hspace=0)
+plt.savefig('plots/repeats_delta.pdf')

@@ -94,7 +94,7 @@ and r1.program=r2.program
 and r1.mjd<r2.mjd
 and r1.rr_spectype='STAR'
 and r2.rr_spectype='STAR'
-and r1.feh_err>0.1 
+and r1.feh_err>0.
 and r2.feh_err>0
 ''',
                     conn=conn1,
@@ -118,7 +118,7 @@ bins = 20
 for i, prog in enumerate(['dark', 'bright', 'backup']):
     sel1 = (PAIRS['program'] == prog) & (PAIRS['survey'] == survey) & (
         PAIRS['rvs_warn1'] == 0) & (PAIRS['rvs_warn2'] == 0)
-    erange = [-3, 0]
+    erange = [-2, 0]
     sel2 = sel1 & (np.abs(PAIRS['mjd1'] - PAIRS['mjd2']) > 1)
     SS = scipy.stats.binned_statistic(np.log10(comb_err[sel1]),
                                       delt[sel1],
@@ -147,7 +147,7 @@ for i, prog in enumerate(['dark', 'bright', 'backup']):
          ylog=True,
          xlog=True,
          yr=[0.01, 1],
-         xr=[0.001, 1],
+         xr=[0.01, 1],
          xtitle=r'$\sqrt{\frac{\sigma_1^2+\sigma_2^2}{2}}$ [km/s]',
          noerase=True,
          title=f'Survey, program: {survey},{prog}',
@@ -164,7 +164,7 @@ for i, prog in enumerate(['dark', 'bright', 'backup']):
         plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
     floor = {'dark': .03, 'bright': .03, 'backup': .03}[prog]
     oplot(10**xgrid,
-          np.sqrt(10**(2 * xgrid) + floor**2),
+          np.sqrt(10**(2 * xgrid) * 1.1**2 + floor**2),
           label='floor %s dex' % floor)
     plt.legend()
 plt.gcf().set_size_inches(3.37 * 2, 3.37 * .7)
