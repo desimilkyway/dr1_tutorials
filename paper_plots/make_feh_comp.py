@@ -8,20 +8,9 @@ import match_lists
 from matplotlib.colors import TABLEAU_COLORS
 import scipy.optimize
 
-pp.run()
 
-RV_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
-                         'RVTAB',
-                         mask_invalid=False)
-SP_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
-                         'SPTAB',
-                         mask_invalid=False)
-FM_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
-                         'FIBERMAP',
-                         mask_invalid=False)
-G_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
-                        'GAIA',
-                        mask_invalid=False)
+def betw(x, x1, x2):
+    return (x >= x1) & (x < x2)
 
 
 def combiner(*args):
@@ -44,22 +33,34 @@ def func(p, X, Y):
 
 def fitter(teff, feh_ref, feh_obs):
     X, Y = np.log10(teff), feh_obs - feh_ref
-    aind = main_sel & np.isfinite(X + Y) & betw(teff, 4500, 7000)
+    aind = main_sel & np.isfinite(X + Y) & betw(teff, minteff, maxteff)
     X, Y = X[aind], Y[aind]
     R1 = scipy.optimize.minimize(func, [0, 0, 0], args=(X, Y))
     return R1.x
 
 
+pp.run()
+
+RV_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
+                         'RVTAB',
+                         mask_invalid=False)
+SP_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
+                         'SPTAB',
+                         mask_invalid=False)
+FM_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
+                         'FIBERMAP',
+                         mask_invalid=False)
+G_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
+                        'GAIA',
+                        mask_invalid=False)
+
 main_sel = (RV_T['RVS_WARN'] == 0) & (RV_T['RR_SPECTYPE'] == 'STAR')
 cnt = 0
+
 # cur_sel0 = main_sel & (RV_T['SURVEY'] == 'main') & (
 #    RV_T['PROGRAM'] == 'bright') & (RV_T['SN_R'] > 10)
+
 cur_sel0 = main_sel & (RV_T['SURVEY'] == 'main') & (RV_T['SN_R'] > 10)
-
-
-def betw(x, x1, x2):
-    return (x >= x1) & (x < x2)
-
 
 ra, dec = RV_T['TARGET_RA'], RV_T['TARGET_DEC']
 SAGAT = atpy.Table().read(
@@ -71,7 +72,9 @@ DD, xind = match_lists.match_lists(ra, dec, SAGAT['RAdeg'], SAGAT['DECdeg'],
 SAGA_R = {'fe_h': np.zeros(len(ra)) + np.nan}
 SAGA_R['fe_h'][np.isfinite(DD)] = SAGAT['[M/H]'].filled(
     np.nan)[xind[np.isfinite(DD)]]
+
 HOST = open('WSDB', 'r').read()
+
 D_GA = crossmatcher.doit('galah_dr4.allstar',
                          ra,
                          dec,
@@ -89,9 +92,11 @@ D_AP = crossmatcher.doit(
     host=HOST,
     db='wsdb',
     asDict=True)
+
 D_AP['fe_h'][(D_AP['fe_h_flag'] != 0) | (D_AP['starflag'] != 0) |
              (D_AP['aspcapflag'] != 0)] = np.nan
 D_GA['fe_h'][(D_GA['flag_fe_h'] != 0) | (D_GA['flag_sp'] != 0)] = np.nan
+
 coeff_sp = fitter(SP_T['TEFF'], combiner(D_GA["fe_h"], D_AP['fe_h']),
                   SP_T['FEH'])
 coeff_rv = fitter(RV_T['TEFF'], combiner(D_GA["fe_h"], D_AP['fe_h']),
@@ -106,6 +111,7 @@ RV_T['FEH_CALIB'] = RV_T['FEH'] - np.poly1d(coeff_rv)(
 print('RV', coeff_rv[::-1], 'SP', coeff_sp[::-1])
 
 minteff, maxteff = 4500, 7000
+
 plt.clf()
 fig = plt.figure(figsize=(3.37 * 2, 3.37 * 1.5))
 for cnt in range(6):
