@@ -108,7 +108,7 @@ plt.clf()
 survey = 'main'
 bins = 20
 floor_dict = {'dark': 1.2, 'bright': .7, 'backup': 2}
-fig = plt.figure(figsize=(3.37 * 2, 3.37 * .7))
+fig = plt.figure(figsize=(3.37 * 1, 3.37 * .9))
 
 for i, prog in enumerate(['dark', 'bright', 'backup']):
     sel1 = (PAIRS['program'] == prog) & (PAIRS['survey'] == survey) & (
@@ -137,26 +137,27 @@ for i, prog in enumerate(['dark', 'bright', 'backup']):
                                        range=erange,
                                        bins=bins)
 
-    plt.subplot(1, 3, i + 1)
+    plt.subplot(3, 1, i + 1)
     plot(10**(SS.bin_edges[:-1] + .5 * np.diff(SS.bin_edges)), (SS.statistic),
          ps=3,
          ylog=True,
          xlog=True,
          yr=[.5, 30],
          xr=[.11, 30],
-         xtitle=r'$\sqrt{\frac{\sigma_1^2+\sigma_2^2}{2}}$ [km/s]',
          noerase=True,
-         title=f'Survey, program: {survey},{prog}',
          ind=SC.statistic > 100)
     oplot(10**(SS2.bin_edges[:-1] + .5 * np.diff(SS2.bin_edges)),
           (SS2.statistic),
           ps=3,
           color='grey',
           ind=SC2.statistic > 100)
-    if i == 0:
+    if i == 1:
         plt.ylabel(r'$\frac{1}{\sqrt{2}}$ StdDev($V_1-V_2$) [km/s]')
     else:
         plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
+    if i == 2:
+        plt.xlabel(r'$\sqrt{\frac{\sigma_1^2+\sigma_2^2}{2}}$ [km/s]')
+    plt.text(.2, 10, f'Survey, program: {survey},{prog}')
     oplot(10**xgrid,
           np.sqrt(10**(2 * xgrid) + floor**2),
           label='floor %s km/s' % floor)
@@ -187,12 +188,12 @@ for i, prog in enumerate(['dark', 'bright', 'backup']):
              f'Survey, program:\n {survey},{prog}',
              transform=plt.gca().transAxes)
 
-    #if i == 0:
+    # if i == 0:
     plt.ylabel(r'N/bin')
     if i < 2:
         plt.gca().xaxis.set_major_formatter(plt.NullFormatter())
     if i == 2:
-        plt.xlabel('$\delta_{RV}/\sigma_{RV,calib}$')
+        plt.xlabel(r'$\delta_{RV}/\sigma_{RV,calib}$')
     # plt.legend()
 plt.tight_layout()
 plt.subplots_adjust(wspace=0, hspace=0)
