@@ -25,6 +25,8 @@ def combiner(*args):
 teff_ref = 5000
 logteff_scale = 0.1
 
+minteff, maxteff = 4500, 7000
+
 
 def func(p, X, Y):
     return np.mean(
@@ -75,23 +77,46 @@ SAGA_R['fe_h'][np.isfinite(DD)] = SAGAT['[M/H]'].filled(
 
 HOST = open('WSDB', 'r').read()
 
-D_GA = crossmatcher.doit('galah_dr4.allstar',
-                         ra,
-                         dec,
-                         'fe_h,teff,logg,mg_fe,ca_fe,c_fe,flag_fe_h,flag_sp',
-                         host=HOST,
-                         db='wsdb',
-                         asDict=True)
+if False:
+    D_GA = crossmatcher.doit(
+        'galah_dr4.allstar',
+        ra,
+        dec,
+        'fe_h,teff,logg,mg_fe,ca_fe,c_fe,flag_fe_h,flag_sp',
+        host=HOST,
+        db='wsdb',
+        asDict=True)
+else:
+    D_GA = crossmatcher.doit_by_key(
+        'galah_dr4.allstar',
+        G_T['SOURCE_ID'],
+        'fe_h,teff,logg,mg_fe,ca_fe,c_fe,flag_fe_h,flag_sp',
+        host=HOST,
+        db='wsdb',
+        asDict=True,
+        key_col='gaiadr3_source_id')
 
-D_AP = crossmatcher.doit(
-    'apogee_dr17.allstar',
-    ra,
-    dec,
-    '''alpha_m,fe_h,c_fe,n_fe,o_fe,na_fe,mg_fe,si_fe,ca_fe,ti_fe,mn_fe,ni_fe,ce_fe,vhelio_avg,logg,teff,teff_spec,logg_spec,
+if False:
+
+    D_AP = crossmatcher.doit(
+        'apogee_dr17.allstar',
+        ra,
+        dec,
+        '''alpha_m,fe_h,c_fe,n_fe,o_fe,na_fe,mg_fe,si_fe,ca_fe,ti_fe,mn_fe,ni_fe,ce_fe,vhelio_avg,logg,teff,teff_spec,logg_spec,
     aspcapflag,starflag, fe_h_flag''',
-    host=HOST,
-    db='wsdb',
-    asDict=True)
+        host=HOST,
+        db='wsdb',
+        asDict=True)
+else:
+    D_AP = crossmatcher.doit_by_key(
+        'apogee_dr17.allstar',
+        G_T['SOURCE_ID'],
+        '''alpha_m,fe_h,c_fe,n_fe,o_fe,na_fe,mg_fe,si_fe,ca_fe,ti_fe,mn_fe,ni_fe,ce_fe,vhelio_avg,logg,teff,teff_spec,logg_spec,
+    aspcapflag,starflag, fe_h_flag''',
+        key_col='gaiaedr3_source_id',
+        host=HOST,
+        db='wsdb',
+        asDict=True)
 
 D_AP['fe_h'][(D_AP['fe_h_flag'] != 0) | (D_AP['starflag'] != 0) |
              (D_AP['aspcapflag'] != 0)] = np.nan
@@ -109,8 +134,6 @@ SP_T['FEH_CALIB'] = SP_T['FEH'] - np.poly1d(coeff_sp)(
 RV_T['FEH_CALIB'] = RV_T['FEH'] - np.poly1d(coeff_rv)(
     np.log10(RV_T['TEFF'] / teff_ref) / logteff_scale)
 print('RV', coeff_rv[::-1], 'SP', coeff_sp[::-1])
-
-minteff, maxteff = 4500, 7000
 
 plt.clf()
 fig = plt.figure(figsize=(3.37 * 1, 3.37 * 1.4))
@@ -145,7 +168,7 @@ for x1 in range(2):
             plt.xlim(-4, -.01)
             plt.ylim(-4, -.01)
             plt.text(-3, -.5, 'SAGA')
-        plt.plot([-4, 1], [-4, 1], color='red', linestyle='--')
+        plt.plot([-4, 1], [-4, 1], color='red', linestyle=':')
 
         plt.xlabel('[Fe/H]$_{survey}$ [dex]')
 
@@ -186,7 +209,7 @@ for var_name in ['FEH', 'FEH_CALIB']:
             plt.hist(
                 delt,
                 range=[-1, 1],
-                linestyle=[':', '--'][i],
+                # linestyle=[':', '--'][i],
                 histtype='step',
                 bins=[100, 100, 10][cnt],
                 label=label,
