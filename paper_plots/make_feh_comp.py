@@ -113,51 +113,59 @@ print('RV', coeff_rv[::-1], 'SP', coeff_sp[::-1])
 minteff, maxteff = 4500, 7000
 
 plt.clf()
-fig = plt.figure(figsize=(3.37 * 2, 3.37 * 1.5))
-for cnt in range(6):
-    T = [RV_T, SP_T][cnt // 3]
-    titl = ['RVS', 'SP'][cnt // 3]
-    if cnt == 0:
-        cur_sel = cur_sel0 & (T['FEH_ERR'] < 0.1) & (T['VSINI'] < 30)
-    else:
-        cur_sel = cur_sel0 & (SP_T['BESTGRID'] != 's_rdesi1') & (
-            SP_T['COVAR'][:, 0, 0]**.5 < .1)
-    cur_sel = cur_sel & betw(T['TEFF'], minteff, maxteff)
-    plt.subplot(2, 3, cnt + 1)
-    COMP = [D_GA, D_AP, SAGA_R][(cnt % 3)]
-    curfeh = T["FEH"]
-    if cnt % 3 < 2:
-        plt.hist2d(COMP['fe_h'][cur_sel],
-                   curfeh[cur_sel],
-                   range=[[-3, 1], [-3, 1]],
-                   bins=[50, 50],
-                   norm=maco.PowerNorm(gamma=0.5))
-        plt.plot([-3, 1], [-3, 1], color='black', linestyle='--')
-        plt.gci().set_rasterized(True)
-        plt.text(-2, 0.5, ['GALAH', 'APOGEE'][cnt % 3], color='white')
-    else:
-        plt.plot(COMP['fe_h'][cur_sel], curfeh[cur_sel], '.')
-        plt.xlim(-4, 0)
-        plt.ylim(-4, 0)
-        plt.plot([-4, 1], [-4, 1], color='black', linestyle='--')
-        plt.text(-3, -.5, 'SAGA')
+fig = plt.figure(figsize=(3.37 * 1, 3.37 * 1.4))
+pad = 10
+gs = plt.GridSpec(300 + pad, 200)
+cnt = 0
+for x1 in range(2):
+    for x2 in range(3):
+        T = [RV_T, SP_T][x1]
+        titl = ['RVS', 'SP'][x1]
+        if x1 == 0:
+            cur_sel = cur_sel0 & (T['FEH_ERR'] < 0.1) & (T['VSINI'] < 30)
+        else:
+            cur_sel = cur_sel0 & (SP_T['BESTGRID'] != 's_rdesi1') & (
+                SP_T['COVAR'][:, 0, 0]**.5 < .1)
+        cur_sel = cur_sel & betw(T['TEFF'], minteff, maxteff)
+        # plt.subplot(3, 2, 1 + 2 * x2 + x1)
+        plt.subplot(gs[100 * x2 + pad * (x2 == 2):100 * x2 + 100 + pad *
+                       (x2 == 2), 100 * x1:100 * x1 + 100])
+        COMP = [D_GA, D_AP, SAGA_R][x2]
+        curfeh = T["FEH"]
+        if x2 < 2:
+            plt.hist2d(COMP['fe_h'][cur_sel],
+                       curfeh[cur_sel],
+                       range=[[-3, .99], [-3, .99]],
+                       bins=[50, 50],
+                       norm=maco.PowerNorm(gamma=0.5))
+            plt.gci().set_rasterized(True)
+            plt.text(-2.5, 0.3, ['GALAH', 'APOGEE'][x2], color='white')
+        else:
+            plt.plot(COMP['fe_h'][cur_sel], curfeh[cur_sel], '.')
+            plt.xlim(-4, -.01)
+            plt.ylim(-4, -.01)
+            plt.text(-3, -.5, 'SAGA')
+        plt.plot([-4, 1], [-4, 1], color='red', linestyle='--')
 
-    plt.xlabel('[Fe/H]$_{survey}$ [dex]')
+        plt.xlabel('[Fe/H]$_{survey}$ [dex]')
 
-    # plt.title(titl)
-    if cnt % 3 == 0:
-        plt.annotate(titl, (0.1, .9), xycoords='axes fraction', color='white')
-        plt.ylabel(r'[Fe/H]$_{DESI}$ [dex]')
-    else:
-        plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
-plt.tight_layout()
-plt.subplots_adjust(wspace=0.04, hspace=0.25)
+        # plt.title(titl)
+        if x2 == 0:
+            plt.annotate(titl, (0.1, .9),
+                         xycoords='axes fraction',
+                         color='white')
+        if x1 == 0:
+            plt.ylabel(r'[Fe/H]$_{DESI}$ [dex]')
+        else:
+            plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
+        cnt += 1
+plt.subplots_adjust(top=.99, right=.99, left=.13, bottom=.065)
 plt.savefig('plots/feh_compar.pdf')
 
 for var_name in ['FEH', 'FEH_CALIB']:
-    fig = plt.figure(figsize=(3.37 * 2, 3.37 * .7))
+    fig = plt.figure(figsize=(3.37 * 1, 3.37 * 1))
     for cnt in range(3):
-        plt.subplot(1, 3, cnt + 1)
+        plt.subplot(3, 1, cnt + 1)
         COMP = [D_GA, D_AP, SAGA_R][(cnt % 3)]
         tit = ['GALAH', 'APOGEE', 'SAGA'][cnt % 3]
         for i, (T, label) in enumerate(zip([RV_T, SP_T], ['RVS', 'SP'])):
@@ -185,16 +193,21 @@ for var_name in ['FEH', 'FEH_CALIB']:
             )
             plt.annotate('$%.2f_{%.2f}^{+%.2f}$' %
                          (percs[1], percs[0] - percs[1], percs[2] - percs[1]),
-                         (.7, .8 - .1 * i),
+                         (.8, .8 - .3 * i),
                          color=list(TABLEAU_COLORS.values())[i],
                          xycoords='axes fraction')
         plt.annotate(tit, (.5, .9), xycoords='axes fraction')
         postfix = {'FEH': '', 'FEH_CALIB': r'$_{\rm calibrated}$'}[var_name]
-        plt.xlabel(r'$\delta$ [Fe/H]' + postfix + ' [dex]')
+        if cnt == 2:
+            plt.xlabel(r'$\delta$ [Fe/H]' + postfix + ' [dex]')
+        else:
+            plt.gca().xaxis.set_major_formatter(plt.NullFormatter())
+        plt.ylim(.1, plt.ylim()[1] * 1.1)
+
         if cnt == 0:
             plt.legend()
     plt.tight_layout()
-    # plt.subplots_adjust(wspace=0.04, hspace=0.25)
+    plt.subplots_adjust(hspace=0.0)
     plt.savefig({
         'FEH': 'plots/feh_compar_delta.pdf',
         'FEH_CALIB': 'plots/feh_compar_delta_calibrated.pdf'

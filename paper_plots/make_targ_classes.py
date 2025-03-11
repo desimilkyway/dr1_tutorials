@@ -19,8 +19,7 @@ G_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
 
 main_sel = (RV_T['RVS_WARN'] == 0) & (RV_T['RR_SPECTYPE'] == 'STAR')
 
-plt.clf()
-fig = plt.figure(figsize=(3.37 * 2, 3.37 * 1.))
+fig = plt.figure(figsize=(3.37 * 1, 3.37 * 1.))
 cnt = 0
 bitmasks = [
     ('MWS_MAIN_BLUE', 8),
@@ -49,7 +48,7 @@ for curt, bit in bitmasks:
                np.log10(FM_T['FLUX_G'][cur_sel] / FM_T['FLUX_R'][cur_sel]),
                22.5 - 2.5 * np.log10(FM_T['FLUX_R'][cur_sel]),
                bins=[100, 100],
-               range=[[-0.49, 2.1], [15.51, 20.5]],
+               range=[[-0.49, 2.1], [15.31, 20.5]],
                norm=colors.PowerNorm(gamma=0.5, vmax=vmax[curt]))
     plt.gci().set_rasterized(True)
     if cnt % 3 == 0:
@@ -60,14 +59,14 @@ for curt, bit in bitmasks:
         plt.colorbar(shrink=.9)
     cnt += 1
     # plt.title(f'survey, program: {survey},{program}')
-    plt.ylim(20.5, 15.51)
-    plt.text(0, 15.9, f'{curt}, bitmask {2**bit}', color='white')
+    plt.ylim(20.5, 15.31)
+    plt.text(-.3, 16., f'{curt}\n bitmask {2**bit}', color='white')
     if cnt > 3:
         plt.xlabel('g-r [mag]')
-        plt.xticks([0, 0.5, 1, 1.5, 2])
+        plt.xticks([0, 1, 2])
     else:
         plt.gca().xaxis.set_major_formatter(plt.NullFormatter())
 plt.tight_layout()
-plt.subplots_adjust(wspace=0., hspace=0.01, top=.99)
+plt.subplots_adjust(wspace=0., hspace=0.01, top=.99, right=.94, left=.096)
 
 plt.savefig('plots/targ_classes.pdf')

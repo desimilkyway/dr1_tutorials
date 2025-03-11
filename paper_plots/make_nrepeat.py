@@ -39,20 +39,22 @@ conn1 = duckdb.connect(':memory:')
 conn1.register('repeats0', tab_p)
 conn1.execute('create table repeats as select * from repeats0')
 sid, cnt, dmjd = sqlutil.get(
-    'select source_id , count(*),max(mjd)-min(mjd) from repeats as r where source_id>0 group by SOURCE_ID',
+    '''select source_id , count(*), max(mjd)-min(mjd) from repeats as r 
+        where source_id>0 group by SOURCE_ID''',
     conn=conn1,
     driver='duckdb')
 fig = plt.figure(figsize=(3.37, 3.37 * .75))
-for i, limit in enumerate([1, 10, 100]):
+for i, limit in enumerate([1, 10, 100, 1000]):
     plt.hist(cnt[dmjd < limit],
              label='<%d day' % limit,
-             range=[-0.5, 50.5],
+             range=[0.5, 50.5],
              bins=51,
              histtype='step',
              alpha=0.5,
-             color=['blue', 'green', 'red'][i])
+             color=['blue', 'green', 'red', 'orange'][i])
 plt.xlabel('N observations')
 plt.legend()
+plt.xlim(0, 50)
 plt.gca().set_yscale('log')
 plt.tight_layout()
 plt.savefig('plots/nrepeats.pdf')
