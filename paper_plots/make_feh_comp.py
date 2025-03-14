@@ -22,10 +22,33 @@ def combiner(*args):
     return ret
 
 
+def get_saga(ra, dec):
+    SAGAT = atpy.Table().read(
+        'saga_cleaned_catalog.tsv',
+        format='ascii',
+    )
+    DD, xind = match_lists.match_lists(ra, dec, SAGAT['RAdeg'],
+                                       SAGAT['DECdeg'], 1. / 3600)
+    SAGA_R = {'fe_h': np.zeros(len(ra)) + np.nan}
+    SAGA_R['fe_h'][np.isfinite(DD)] = SAGAT['[M/H]'].filled(
+        np.nan)[xind[np.isfinite(DD)]]
+    return SAGA_R
+
+
+def get_ges(ra, dec):
+    GEST = atpy.Table().read('gaia_eso_cat_dr4_esoarch.fits',
+                             mask_invalid=False)
+    DD, xind = match_lists.match_lists(ra, dec, GEST['RA'],
+                                       GEST['DECLINATION'], 1. / 3600)
+    GES = {'feh': np.zeros(len(ra)) + np.nan}
+    GES['fe_h'][np.isfinite(DD)] = GEST['FEH'][xind[np.isfinite(DD)]]
+
+
 teff_ref = 5000
 logteff_scale = 0.1
 
-minteff, maxteff = 4500, 7000
+# minteff, maxteff = 4500, 7000
+minteff, maxteff = 500, 37000
 
 
 def func(p, X, Y):
@@ -39,6 +62,34 @@ def fitter(teff, feh_ref, feh_obs):
     X, Y = X[aind], Y[aind]
     R1 = scipy.optimize.minimize(func, [0, 0, 0], args=(X, Y))
     return R1.x
+
+
+def func_cut(p, X, Y, Z, cut):
+    P_low = np.poly1d(p[:3])
+    P_high = np.poly1d(p[3:])
+    xscale = (X - np.log10(teff_ref)) / logteff_scale
+    pred_low = P_low(xscale)
+    pred_high = P_high(xscale)
+    pred = pred_low * (Y < cut) + pred_high * (Y >= cut)
+    return np.mean(np.abs(Z - pred))
+
+
+def fitter_cut(teff, logg, feh_ref, feh_obs):
+    X, Y, Z = np.log10(teff), logg, feh_obs - feh_ref
+    aind = main_sel & np.isfinite(X + Y + Z) & betw(teff, minteff, maxteff)
+    X, Y, Z = np.array(X[aind]), np.array(Y[aind]), np.array(Z[aind])
+    funcs = []
+    cuts = np.arange(0, 6, 0.1)
+    for cut in cuts:
+        R1 = scipy.optimize.minimize(func_cut,
+                                     np.zeros(6),
+                                     args=(X, Y, Z, cut))
+        funcs.append(R1.fun)
+    best_cut = cuts[np.argmin(funcs)]
+    R1 = scipy.optimize.minimize(func_cut,
+                                 np.zeros(6),
+                                 args=(X, Y, Z, best_cut))
+    return best_cut, R1.x
 
 
 pp.run()
@@ -57,23 +108,12 @@ G_T = atpy.Table().read('../data/mwsall-pix-iron.fits',
                         mask_invalid=False)
 
 main_sel = (RV_T['RVS_WARN'] == 0) & (RV_T['RR_SPECTYPE'] == 'STAR')
-cnt = 0
-
-# cur_sel0 = main_sel & (RV_T['SURVEY'] == 'main') & (
-#    RV_T['PROGRAM'] == 'bright') & (RV_T['SN_R'] > 10)
 
 cur_sel0 = main_sel & (RV_T['SURVEY'] == 'main') & (RV_T['SN_R'] > 10)
 
 ra, dec = RV_T['TARGET_RA'], RV_T['TARGET_DEC']
-SAGAT = atpy.Table().read(
-    'saga_cleaned_catalog.tsv',
-    format='ascii',
-)
-DD, xind = match_lists.match_lists(ra, dec, SAGAT['RAdeg'], SAGAT['DECdeg'],
-                                   1. / 3600)
-SAGA_R = {'fe_h': np.zeros(len(ra)) + np.nan}
-SAGA_R['fe_h'][np.isfinite(DD)] = SAGAT['[M/H]'].filled(
-    np.nan)[xind[np.isfinite(DD)]]
+
+SAGA_R = get_saga(ra, dec)
 
 HOST = open('WSDB', 'r').read()
 
@@ -118,6 +158,15 @@ else:
         db='wsdb',
         asDict=True)
 
+D_GAIA = crossmatcher.doit_by_key(
+    'gaia_dr3.astrophysical_parameters',
+    G_T['SOURCE_ID'],
+    '''mh_gspspec,teff_gspspec,fem_gspspec,logg_gspspec,
+    coalesce(flags_gspspec like '0000000000000%', false) as good_flag ''',
+    key_col='source_id',
+    asDict=True)
+D_GAIA['fe_h'] = D_GAIA['mh_gspspec']
+D_GAIA['fe_h'][~D_GAIA['good_flag']] = np.nan
 D_AP['fe_h'][(D_AP['fe_h_flag'] != 0) | (D_AP['starflag'] != 0) |
              (D_AP['aspcapflag'] != 0)] = np.nan
 D_GA['fe_h'][(D_GA['flag_fe_h'] != 0) | (D_GA['flag_sp'] != 0)] = np.nan
@@ -135,6 +184,29 @@ RV_T['FEH_CALIB'] = RV_T['FEH'] - np.poly1d(coeff_rv)(
     np.log10(RV_T['TEFF'] / teff_ref) / logteff_scale)
 print('RV', coeff_rv[::-1], 'SP', coeff_sp[::-1])
 
+cut_sp, coeff_sp2 = fitter_cut(SP_T['TEFF'], SP_T['LOGG'],
+                               combiner(D_GA["fe_h"], D_AP['fe_h']),
+                               SP_T['FEH'])
+cut_rv, coeff_rv2 = fitter_cut(RV_T['TEFF'], RV_T['LOGG'],
+                               combiner(D_GA["fe_h"], D_AP['fe_h']),
+                               RV_T['FEH'])
+coeff_sp2 = np.round(coeff_sp2, 3)
+coeff_rv2 = np.round(coeff_rv2, 3)
+print('RV', coeff_rv2[:3][::-1], '\n', coeff_rv2[3:][::-1], '\n cut', cut_rv,
+      '\n', 'SP', coeff_sp2[:3][::-1], '\n', coeff_sp2[3:][::-1], '\n cut',
+      cut_sp)
+
+SP_T['FEH_CALIB2'] = (SP_T['FEH'] - np.poly1d(coeff_sp2[:3])
+                      (np.log10(SP_T['TEFF'] / teff_ref) / logteff_scale) *
+                      (SP_T['LOGG'] < cut_sp) - np.poly1d(coeff_sp2[3:])
+                      (np.log10(SP_T['TEFF'] / teff_ref) / logteff_scale) *
+                      (SP_T['LOGG'] >= cut_sp))
+RV_T['FEH_CALIB2'] = (RV_T['FEH'] - np.poly1d(coeff_rv2[:3])
+                      (np.log10(RV_T['TEFF'] / teff_ref) / logteff_scale) *
+                      (RV_T['LOGG'] < cut_rv) - np.poly1d(coeff_rv2[3:])
+                      (np.log10(RV_T['TEFF'] / teff_ref) / logteff_scale) *
+                      (RV_T['LOGG'] >= cut_rv))
+
 plt.clf()
 fig = plt.figure(figsize=(3.37 * 1, 3.37 * 1.4))
 pad = 10
@@ -145,7 +217,7 @@ for x1 in range(2):
         T = [RV_T, SP_T][x1]
         titl = ['RVS', 'SP'][x1]
         if x1 == 0:
-            cur_sel = cur_sel0 & (T['FEH_ERR'] < 0.1) & (T['VSINI'] < 30)
+            cur_sel = cur_sel0 & (RV_T['FEH_ERR'] < 0.1) & (RV_T['VSINI'] < 30)
         else:
             cur_sel = cur_sel0 & (SP_T['BESTGRID'] != 's_rdesi1') & (
                 SP_T['COVAR'][:, 0, 0]**.5 < .1)
@@ -158,23 +230,24 @@ for x1 in range(2):
         if x2 < 2:
             plt.hist2d(COMP['fe_h'][cur_sel],
                        curfeh[cur_sel],
-                       range=[[-3, .99], [-3, .99]],
+                       range=[[-2.5, .6], [-2.5, .6]],
                        bins=[50, 50],
-                       norm=maco.PowerNorm(gamma=0.5))
+                       norm=maco.PowerNorm(gamma=0.5, vmax=100))
             plt.gci().set_rasterized(True)
-            plt.text(-2.5, 0.3, ['GALAH', 'APOGEE'][x2], color='white')
+            if x1 == 0:
+                plt.text(-2., 0.2, ['GALAH', 'APOGEE'][x2], color='white')
         else:
             plt.plot(COMP['fe_h'][cur_sel], curfeh[cur_sel], '.')
             plt.xlim(-4, -.01)
             plt.ylim(-4, -.01)
             plt.text(-3, -.5, 'SAGA')
-        plt.plot([-4, 1], [-4, 1], color='red', linestyle=':')
+        plt.plot([-4, 1], [-4, 1], color='red', linestyle='--', dashes=(3, 10))
 
         plt.xlabel('[Fe/H]$_{survey}$ [dex]')
 
         # plt.title(titl)
         if x2 == 0:
-            plt.annotate(titl, (0.1, .9),
+            plt.annotate(titl, (0.5, .9),
                          xycoords='axes fraction',
                          color='white')
         if x1 == 0:
@@ -185,12 +258,14 @@ for x1 in range(2):
 plt.subplots_adjust(top=.99, right=.99, left=.13, bottom=.065)
 plt.savefig('plots/feh_compar.pdf')
 
-for var_name in ['FEH', 'FEH_CALIB']:
+for var_name in ['FEH', 'FEH_CALIB2']:
     fig = plt.figure(figsize=(3.37 * 1, 3.37 * 1))
-    for cnt in range(3):
-        plt.subplot(3, 1, cnt + 1)
-        COMP = [D_GA, D_AP, SAGA_R][(cnt % 3)]
-        tit = ['GALAH', 'APOGEE', 'SAGA'][cnt % 3]
+    ncnt = 4
+    for cnt in range(ncnt):
+        plt.subplot(ncnt, 1, cnt + 1)
+        COMP = [D_GA, D_AP, D_GAIA, SAGA_R][(cnt)]
+        tit = ['GALAH', 'APOGEE', 'Gaia', 'SAGA'][cnt]
+        bins = [100, 100, 100, 10][cnt]
         for i, (T, label) in enumerate(zip([RV_T, SP_T], ['RVS', 'SP'])):
             if i == 0:
                 cur_sel = cur_sel0 & (T['FEH_ERR'] < .1) & (T['VSINI'] < 30)
@@ -211,21 +286,21 @@ for var_name in ['FEH', 'FEH_CALIB']:
                 range=[-1, 1],
                 # linestyle=[':', '--'][i],
                 histtype='step',
-                bins=[100, 100, 10][cnt],
+                bins=bins,
                 label=label,
             )
-            plt.annotate('$%.2f_{%.2f}^{+%.2f}$' %
+            plt.annotate(r'$%.2f_{%.2f}^{+%.2f}$' %
                          (percs[1], percs[0] - percs[1], percs[2] - percs[1]),
                          (.8, .8 - .3 * i),
                          color=list(TABLEAU_COLORS.values())[i],
                          xycoords='axes fraction')
-        plt.annotate(tit, (.5, .9), xycoords='axes fraction')
-        postfix = {'FEH': '', 'FEH_CALIB': r'$_{\rm calibrated}$'}[var_name]
-        if cnt == 2:
+        plt.annotate(tit, (.5, .86), xycoords='axes fraction')
+        postfix = {'FEH': '', 'FEH_CALIB2': r'$_{\rm calibrated}$'}[var_name]
+        if cnt == ncnt - 1:
             plt.xlabel(r'$\delta$ [Fe/H]' + postfix + ' [dex]')
         else:
             plt.gca().xaxis.set_major_formatter(plt.NullFormatter())
-        plt.ylim(.1, plt.ylim()[1] * 1.1)
+        plt.ylim(.1, plt.ylim()[1] * 1.15)
 
         if cnt == 0:
             plt.legend()
@@ -233,5 +308,5 @@ for var_name in ['FEH', 'FEH_CALIB']:
     plt.subplots_adjust(hspace=0.0)
     plt.savefig({
         'FEH': 'plots/feh_compar_delta.pdf',
-        'FEH_CALIB': 'plots/feh_compar_delta_calibrated.pdf'
+        'FEH_CALIB2': 'plots/feh_compar_delta_calibrated.pdf'
     }[var_name])

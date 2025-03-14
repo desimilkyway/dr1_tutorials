@@ -1,7 +1,6 @@
 import astropy.table as atpy
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.colors as maco
 import plot_preamb as pp
 
 pp.run()
