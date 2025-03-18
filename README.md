@@ -1,4 +1,4 @@
-# Tutorial on the MWS VAC DR1
+# Tutorial on the DESI MWS VAC DR1
 
 This is a small tutorial on the usage of the MWS catalogue.
 
