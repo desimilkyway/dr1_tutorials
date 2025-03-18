@@ -153,8 +153,8 @@ for i, prog in enumerate(['dark', 'bright', 'backup']):
           ind=SC2.statistic > 100)
     if i == 1:
         plt.ylabel(r'$\frac{1}{\sqrt{2}}$ StdDev($V_1-V_2$) [km/s]')
-    else:
-        plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
+    # else:
+    # plt.gca().yaxis.set_major_formatter(plt.NullFormatter())
     if i == 2:
         plt.xlabel(r'$\sqrt{\frac{\sigma_1^2+\sigma_2^2}{2}}$ [km/s]')
     plt.text(.2, 10, f'Survey, program: {survey},{prog}')
